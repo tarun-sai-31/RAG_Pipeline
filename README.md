@@ -1,8 +1,15 @@
 # Document Assistant
 
+A RAG (Retrieval-Augmented Generation) app: upload your documents, then ask questions about them in a chat and
+get answers with citations pointing to the exact source.
+
 Upload any document (text PDF, scanned PDF, Word, Excel, PowerPoint, images, legacy `.doc/.xls/.xlsb`) and
 ask questions about it in a chat. Each file is processed **once**, in the background, when it is uploaded.
 Every question, and the exact response the API returned, is kept in a searchable history.
+
+**How it works in short:** each uploaded file is read (with OCR for scans), split into chunks, turned into
+embeddings and stored in Milvus. When you ask a question, the app finds the most relevant chunks with a hybrid
+search (meaning + keywords + exact IDs) and Gemini writes an answer using only those chunks, with numbered citations.
 
 | Part | Technology |
 |---|---|
@@ -11,27 +18,99 @@ Every question, and the exact response the API returned, is kept in a searchable
 | Search | **Milvus 3.0** — kNN on embeddings + BM25 full-text + phrase match |
 | App data | **PostgreSQL 16** — documents + job queue, chats, history, groups, API log, embedding cache |
 | Reading scans and images | **Docling** (open-source layout + TableFormer tables + OCR via Tesseract), all local |
-| Embeddings | Gemini `gemini-embedding-001` (1536 dimensions) |
+| Embeddings | `BAAI/bge-m3` (1024 dimensions), runs locally with sentence-transformers |
 | Answers | Gemini `gemini-3.5-flash-lite` |
+
+## Setup (first time on a new machine)
+
+### 1. What you need installed
+
+| Tool | Why | Check |
+|---|---|---|
+| Git | get the code | `git --version` |
+| Python 3.11+ (3.13 used here) | backend | `python3 --version` |
+| Docker + Docker Compose | PostgreSQL and Milvus | `docker compose version` |
+| Node.js 24.15+ (via [nvm](https://github.com/nvm-sh/nvm)) | frontend | `node --version` |
+| Tesseract OCR + LibreOffice | reading scans and Office files | `tesseract --version`, `soffice --version` |
+
+On Ubuntu/Debian, Tesseract and LibreOffice:
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin libreoffice
+```
+
+You also need a **Gemini API key** (free at https://aistudio.google.com/apikey) for the answers.
+
+### 2. Get the code and the settings file
+
+```bash
+git clone https://github.com/tarun-sai-31/RAG_Pipeline.git
+cd RAG_Pipeline
+cp .env.example .env        # then open .env and set GEMINI_API_KEY (and API_KEY)
+```
+
+`.env` holds your keys and is never committed to git.
+
+### 3. Backend: create the virtual environment (`.venv`) and install the requirements
+
+The backend uses its own Python environment in `backend/.venv`, so its packages don't mix with other projects.
+
+```bash
+cd backend
+python3 -m venv .venv               # create the environment (only once)
+source .venv/bin/activate           # activate it; your prompt now starts with (.venv)
+pip install --upgrade pip
+pip install -r requirements.txt     # install everything (includes CPU PyTorch, takes a few minutes)
+cd ..
+```
+
+Working with the `.venv` later:
+
+| What | Command (from `backend/`) |
+|---|---|
+| Activate it (each new terminal) | `source .venv/bin/activate` |
+| Check it is active | `which python` → should end in `backend/.venv/bin/python` |
+| Install a new package | `pip install <name>`, then add it to `requirements.txt` |
+| Leave it | `deactivate` |
+| Start over (broken environment) | `rm -rf .venv` and repeat step 3 |
+
+If you use Anaconda, run `conda deactivate` first so the `(base)` environment doesn't get in the way.
+`./start.sh` (below) creates the `.venv` and installs the requirements by itself if they are missing.
+
+### 4. Frontend: install the packages
+
+```bash
+cd frontend
+nvm install                 # installs the Node version the project needs
+npm ci                      # installs the packages from package-lock.json
+cd ..
+```
+
+### 5. Start the databases
+
+```bash
+docker compose up -d        # PostgreSQL + Milvus; they keep running, also after a reboot
+```
 
 ## Run
 
-The databases run in Docker. Start them once; they keep running, also after a reboot:
-```bash
-docker compose up -d
-```
-
-Then two commands, each in its own terminal:
+Two terminals, after the databases are up (`docker compose up -d`):
 
 ```bash
-# 1. Backend (API + background processing of uploads)
+# Terminal 1: backend (API + background processing of uploads)
 cd backend
 ./start.sh             # activates backend/.venv, then runs `fastapi dev` (auto-reload)
                        # ./start.sh run  → `fastapi run` (no auto-reload)
 ```
 
+Or by hand, with the `.venv` activated:
 ```bash
-# 2. Frontend
+cd backend
+source .venv/bin/activate
+fastapi dev            # http://127.0.0.1:8000
+```
+
+```bash
+# Terminal 2: frontend
 cd frontend
 npm start              # uses a Node that Angular accepts (24.15+), from nvm if this terminal's is older
 ```
@@ -47,15 +126,8 @@ Settings come from `RAG_Pipeline/.env`. Uploaded files and the extraction cache 
 The backend processes uploads itself with `EMBEDDED_WORKERS` threads (default 2), so no separate worker is needed.
 Stop with `Ctrl+C`; `docker compose down -t 0` stops the databases (their data is kept).
 
-First-time setup on a new machine:
-```bash
-cp .env.example .env                                   # set GEMINI_API_KEY
-cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && cd ..
-cd frontend && nvm install && npm ci && cd ..
-# also needed on the machine: tesseract-ocr (+ eng/hin language data) and LibreOffice (soffice)
-docker compose up -d
-```
-Docling downloads its open-source models (layout and table structure) the first time it reads a scan.
+Docling downloads its open-source models (layout and table structure) the first time it reads a scan, and the
+embedding model `BAAI/bge-m3` is downloaded the first time a document is processed.
 
 **Everything in Docker instead** (e.g. on a server):
 `docker compose --profile app up -d --build` → app on http://localhost:4200 (the API is reached through it at `/api`).
@@ -109,7 +181,7 @@ RAG_Pipeline/
 | Service | Port | Role |
 |---|---|---|
 | `postgres` | 5432 (localhost only) | documents + job queue, chats, history, groups, API log, embedding cache |
-| `milvus` (+ `milvus-etcd`, `milvus-minio`) | 19530, web UI 9091 (localhost only) | search collection `rag_chunks` |
+| `milvus` (+ `milvus-etcd`, `milvus-minio`) | 19530, web UI 9091 (localhost only) | search collection `<COLLECTION_PREFIX>_chunks` (`rag_bgem3_chunks`) |
 | `attu` *(profile tools)* | 8001 (localhost only) | browse the Milvus collection |
 | `frontend`, `api`, `worker` *(profile app)* | 4200 | the app in Docker instead of on this machine |
 
@@ -224,11 +296,11 @@ the Docker volume `rag_pipeline_osdata`; delete it once you are happy: `docker v
 - With the Gemini API, document text is sent to Google. Use a paid key for confidential documents.
   Docling runs entirely on your server.
 
+## Delete all documents
 
-
-
-
-
-
-## To Delete the allt eh documents from the Database 
-  "curl -s http://localhost:8000/documents?limit=1000 | jq -r '.documents[].id' | while read id; do curl -s -X DELETE "http://localhost:8000/documents/$id"; echo "Deleted $id"; done  "
+With the backend running (add `-H "X-API-Key: <your key>"` to both `curl` calls if `API_KEY` is set):
+```bash
+curl -s "http://localhost:8000/documents?limit=1000" | jq -r '.documents[].id' | while read id; do
+  curl -s -X DELETE "http://localhost:8000/documents/$id"; echo " deleted $id"
+done
+```
