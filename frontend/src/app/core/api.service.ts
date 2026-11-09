@@ -44,6 +44,14 @@ export class ApiService {
     return this.http.post<DocumentItem>(`${this.base}/documents/${id}/reprocess`, {});
   }
 
+  moveToFolder(id: string, folder: string): Observable<DocumentItem> {
+    return this.http.patch<DocumentItem>(`${this.base}/documents/${id}`, { folder });
+  }
+
+  documentFile(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/documents/${id}/file`, { responseType: 'blob' });
+  }
+
   deleteDocument(id: string): Observable<{ deleted: string }> {
     return this.http.delete<{ deleted: string }>(`${this.base}/documents/${id}`);
   }

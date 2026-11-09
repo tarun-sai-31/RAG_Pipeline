@@ -17,6 +17,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" /></svg>
         <span>Chat</span>
       </a>
+      <app-doc-scope class="ask-scope" />
       <a routerLink="/documents" routerLinkActive="active">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></svg>
         <span>Documents</span>
@@ -36,6 +37,8 @@
   <main>
     <router-outlet />
   </main>
+
+  <app-source-viewer />
 </div>
 
 <dialog #keyDialog>

@@ -1,6 +1,6 @@
 .shell {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr) auto;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -114,6 +114,10 @@ nav {
   }
 }
 
+.ask-scope {
+  margin: 2px 0 6px 12px; /* under "Chat", indented like a sub-item */
+}
+
 .chats {
   margin-top: -8px;
 }
@@ -173,6 +177,11 @@ dialog {
   }
   nav {
     flex-direction: row;
+    flex-wrap: wrap;
+    .ask-scope {
+      order: 1;
+      flex-basis: 100%;
+    }
     a {
       flex: 1;
       justify-content: center;

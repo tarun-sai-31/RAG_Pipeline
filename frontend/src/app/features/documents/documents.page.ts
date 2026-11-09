@@ -1,11 +1,13 @@
 import { HttpEventType } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
 import { errorMessage } from '../../core/auth';
-import { DocumentsStore } from '../../core/documents.store';
+import { DocumentsStore, folderOf } from '../../core/documents.store';
 import { DocStatus, DocumentItem } from '../../core/models';
 import { FileSizePipe, TimeAgoPipe } from '../../shared/format';
+import { PromptService } from '../../shared/prompt';
 
 interface UploadRow {
   id: number;
@@ -25,6 +27,7 @@ const STATUSES: DocStatus[] = ['ready', 'processing', 'queued', 'failed'];
 })
 export class DocumentsPage {
   private readonly api = inject(ApiService);
+  private readonly prompt = inject(PromptService);
   protected readonly store = inject(DocumentsStore);
 
   protected readonly statuses = STATUSES;
@@ -35,6 +38,8 @@ export class DocumentsPage {
   protected readonly dragging = signal(false);
   protected readonly actionError = signal<string | null>(null);
   private nextUploadId = 1;
+  /** Paths of files dropped as part of a folder (dropped files have no webkitRelativePath). */
+  private readonly droppedPaths = new WeakMap<File, string>();
 
   protected readonly visible = computed(() => {
     const f = this.filter().trim().toLowerCase();
@@ -87,6 +92,7 @@ export class DocumentsPage {
       if (entry.isFile) {
         try {
           const file = await new Promise<File>((resolve, reject) => entry.file(resolve, reject));
+          this.droppedPaths.set(file, String(entry.fullPath ?? '').replace(/^\//, ''));
           outFiles.push(file);
         } catch {
           // ignore unreadable
@@ -132,13 +138,22 @@ export class DocumentsPage {
     const bits = [doc.file_type.toUpperCase()];
     if (doc.page_count) bits.push(`${doc.page_count} ${doc.file_type === 'xlsx' ? 'sheets' : 'pages'}`);
     if (doc.ocr_page_count) bits.push(`${doc.ocr_page_count} OCR`);
-    if (doc.chunk_count) bits.push(`${doc.chunk_count} chunks`);
     return bits.join(' · ');
   }
 
-  projectTag(doc: DocumentItem): string | null {
-    const value = doc.metadata?.['project'];
-    return typeof value === 'string' ? value : null;
+  protected readonly folderOf = folderOf;
+
+  /** Put files into a folder, so the chat's "Ask about" can select them together. */
+  async moveToFolder(docs: DocumentItem[]) {
+    const current = folderOf(docs[0]);
+    const title = docs.length === 1 ? `Move "${docs[0].filename}" to folder` : `Move ${docs.length} files to folder`;
+    const folder = await this.prompt.ask(title, { label: 'Folder name', value: current, confirm: 'Move' });
+    if (!folder) return;
+    this.actionError.set(null);
+    forkJoin(docs.map((d) => this.api.moveToFolder(d.id, folder))).subscribe({
+      next: () => this.store.refresh(),
+      error: (err) => this.actionError.set(errorMessage(err)),
+    });
   }
 
   private async uploadBatch(files: File[], project: string) {
@@ -160,7 +175,11 @@ export class DocumentsPage {
       const patch = (changes: Partial<UploadRow>) =>
         this.uploads.update((rows) => rows.map((r) => (r.id === row.id ? { ...r, ...changes } : r)));
 
-      this.api.upload(file, project ? { project } : undefined).subscribe({
+      // The folder the file came from (e.g. "2025/January"), so the chat can ask about one folder.
+      const path = file.webkitRelativePath || this.droppedPaths.get(file) || '';
+      const folder = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+      const metadata = { ...(project ? { project } : {}), ...(folder ? { folder } : {}) };
+      this.api.upload(file, metadata).subscribe({
         next: (event) => {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             patch({ progress: Math.round((event.loaded / event.total) * 100) });

@@ -22,8 +22,8 @@
     </div>
     <div class="upload-side">
       <label class="field">
-        <span class="muted">Project tag (optional)</span>
-        <input class="input" placeholder="e.g. Habitat" [value]="project()" (input)="project.set($any($event.target).value)" />
+        <span class="muted">Folder (optional) – files you upload go into this folder</span>
+        <input class="input" placeholder="e.g. Case 2024" [value]="project()" (input)="project.set($any($event.target).value)" />
       </label>
       <div class="uploads">
         @for (u of uploads(); track u.id) {
@@ -57,6 +57,9 @@
     @if (statusFilter()) {
       <button type="button" class="btn ghost small" (click)="statusFilter.set('')">Show all statuses</button>
     }
+    @if (visible().length > 1) {
+      <button type="button" class="btn ghost small" (click)="moveToFolder(visible())">📁 Move {{ visible().length }} files to folder</button>
+    }
     <button type="button" class="btn ghost small" (click)="store.refresh()">Refresh</button>
   </div>
 
@@ -84,8 +87,8 @@
           <tr>
             <td class="file">
               <div class="name">{{ d.filename }}</div>
-              @if (projectTag(d); as p) {
-                <span class="badge neutral">#{{ p }}</span>
+              @if (folderOf(d); as f) {
+                <span class="badge neutral">📁 {{ f }}</span>
               }
               @if (d.error) {
                 <div class="error-text small">{{ d.error }}</div>
@@ -96,6 +99,7 @@
             <td class="muted nowrap">{{ d.size_bytes | fileSize }}</td>
             <td class="muted nowrap">{{ d.created_at | timeAgo }}</td>
             <td class="actions">
+              <button type="button" class="icon-btn" title="Move to folder" (click)="moveToFolder([d])">📁</button>
               <button type="button" class="icon-btn" title="Process again" (click)="reprocess(d)">↻</button>
               <button type="button" class="icon-btn" title="Delete" (click)="remove(d)">✕</button>
             </td>

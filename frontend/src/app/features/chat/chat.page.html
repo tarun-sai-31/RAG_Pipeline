@@ -1,68 +1,7 @@
 <div class="layout">
   <section class="chat" (wheel)="onWheel($event)">
     <div class="chat-head">
-      <div class="scope" #scope>
-        <button
-          type="button"
-          class="scope-btn"
-          [class.open]="scopeOpen()"
-          [attr.aria-expanded]="scopeOpen()"
-          aria-haspopup="listbox"
-          (click)="scopeOpen.set(!scopeOpen())"
-        >
-          <span class="muted">Ask about:</span>
-          <strong>
-            @if (docs.selected().size) {
-              {{ docs.selected().size }} selected document{{ docs.selected().size === 1 ? '' : 's' }}
-            } @else {
-              All documents ({{ docs.ready().length }})
-            }
-          </strong>
-          <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-        </button>
-
-        @if (scopeOpen()) {
-          <div class="scope-menu card" role="listbox" aria-multiselectable="true">
-            <input
-              class="input"
-              placeholder="Filter documents"
-              [value]="docFilter()"
-              (input)="docFilter.set($any($event.target).value)"
-            />
-            <label class="doc all">
-              <input type="checkbox" [checked]="!docs.selected().size" (change)="docs.clearSelection()" />
-              <span>All documents</span>
-            </label>
-            <div class="doc-list">
-              @for (d of visibleDocs(); track d.id) {
-                <label class="doc">
-                  <input
-                    type="checkbox"
-                    [checked]="docs.selected().has(d.id)"
-                    (change)="docs.toggle(d.id, $any($event.target).checked)"
-                  />
-                  <span>{{ d.filename }}</span>
-                </label>
-              } @empty {
-                <div class="muted small empty-list">
-                  @if (docs.ready().length) {
-                    No documents match.
-                  } @else {
-                    No ready documents yet. <a routerLink="/documents">Upload some</a>.
-                  }
-                </div>
-              }
-            </div>
-            <div class="menu-foot">
-              <button type="button" class="btn small" (click)="scopeOpen.set(false)">Done</button>
-            </div>
-          </div>
-        }
-      </div>
-
-      <div class="head-right">
-        <button type="button" class="btn ghost small" (click)="newChat()">New chat</button>
-      </div>
+      <button type="button" class="btn ghost small" (click)="newChat()">New chat</button>
     </div>
 
     <div class="messages" #scroller (scroll)="onScroll()">
@@ -78,21 +17,6 @@
           } @else {
             <div class="msg bot">
               <app-answer [text]="m.content" [sources]="m.sources ?? []" />
-              @if (m.guardrails?.status === 'warning') {
-                <div class="guard" role="note">
-                  <strong>Check this answer</strong>
-                  <ul>
-                    @for (f of m.guardrails!.findings; track f.check) {
-                      <li>
-                        {{ f.message }}
-                        @if (f.values?.length) {
-                          <span class="values">({{ f.values!.join(', ') }})</span>
-                        }
-                      </li>
-                    }
-                  </ul>
-                </div>
-              }
               @if (m.latencyMs !== undefined) {
                 <div class="meta muted">
                   {{ (m.latencyMs / 1000).toFixed(1) }} s
@@ -139,7 +63,7 @@
         ></textarea>
         <button class="btn" type="submit" [disabled]="chat.busy() || !question().trim()">Send</button>
       </div>
-      <div class="hint muted">Enter to send · Shift+Enter for a new line · click a number to see its source</div>
+      <div class="hint muted">AI can make mistakes. Please verify with the source.</div>
     </form>
   </section>
 </div>

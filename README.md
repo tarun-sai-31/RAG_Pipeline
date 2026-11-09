@@ -6,9 +6,9 @@ English, and get answers with **citations** that point to the exact page they ca
 Built as a full **RAG (Retrieval-Augmented Generation)** pipeline: FastAPI + Milvus + PostgreSQL + Angular,
 with local OCR and local embeddings. Only the final answer is written by Gemini.
 
-![Chat with cited answers](docs/screenshots/chat.png)
-<sub>Asking a question: the answer cites its sources `[1]`, `[2]`… and every source can be opened below it.
-(Document text is blurred in these screenshots.)</sub>
+![Chat with the source PDF open](docs/screenshots/chat.png)
+<sub>The answer names the file it came from. Click it and the PDF opens beside the chat at the right page.
+(Document names and text are blurred in these screenshots.)</sub>
 
 ---
 
@@ -17,6 +17,9 @@ with local OCR and local embeddings. Only the final answer is written by Gemini.
 - **Any document** – text PDFs, scanned PDFs, images, `.docx`, `.xlsx`, `.csv`, `.pptx`, old `.doc/.xls`, and `.zip` archives or whole folders.
 - **Reads scans** – OCR with [Docling](https://github.com/docling-project/docling) + Tesseract, including tables. Runs on your machine.
 - **Answers with citations** – every fact in an answer is linked to the document and page it came from.
+- **See the source PDF** – click a cited file (or a citation number) and the PDF opens in a side panel at that page.
+- **Ask about one folder** – files are grouped by the folder they were uploaded from. Pick a whole folder or single
+  files in **Ask about** (left sidebar), and questions search only those.
 - **Smart search** – combines meaning (vector search), keywords (BM25) and exact IDs (`"B.P. No. 5"` finds `B_P_No_5`).
 - **Follow-up questions** – "and when is the next hearing?" understands what "the" refers to.
 - **Guardrails** – blocks prompt injection, removes made-up citations, checks that numbers really appear in the sources.
@@ -27,10 +30,27 @@ with local OCR and local embeddings. Only the final answer is written by Gemini.
 
 ## 🖼️ Screenshots
 
-| Documents | History |
+| Ask about a folder | Documents |
 |---|---|
-| ![Documents page](docs/screenshots/documents.png) | ![History page](docs/screenshots/history.png) |
-| Drag in files or a whole folder. Each one is processed in the background; you see pages, chunks and status. | Every chat is saved and searchable. Pin, rename, group or delete chats. |
+| ![Ask about picker](docs/screenshots/ask-about.png) | ![Documents page](docs/screenshots/documents.png) |
+| Tick a folder to ask only about its files, or open it (›) and pick single files. | Upload files or a whole folder. Each file shows its folder (📁); use 📁 to move files into a folder. |
+
+| History |
+|---|
+| ![History page](docs/screenshots/history.png) |
+| Every chat is saved and searchable. Pin, rename, group or delete chats. |
+
+---
+
+## 📁 Folders: ask about only some documents
+
+1. **Upload into a folder** – on the **Documents** page, either click **📁 Upload Folder** (the folder's name is
+   used), or type a name in **Folder** and then use **Choose Files**.
+2. **Move files later** – click 📁 on a file's row, or filter the list and click **Move N files to folder**.
+3. **Choose what to ask about** – in the left sidebar, open **Ask about**:
+   - tick a folder → only its files are searched (the button shows **📁 folder name**),
+   - open a folder with › → tick single files inside it,
+   - **All documents** → search everything again.
 
 ---
 
@@ -115,9 +135,7 @@ Say you upload a rental agreement `lease_2025.pdf` and ask:
 > **Assistant:** The lease runs for 11 months and ends on **31 March 2026** [1]. Either party must give
 > **two months' written notice** before leaving [2].
 >
-> **Sources**
-> `[1]` lease_2025.pdf · page 1
-> `[2]` lease_2025.pdf · page 3
+> **Source** `📄 lease_2025.pdf` ← click to open the PDF beside the chat
 
 Then a follow-up works without repeating yourself:
 
@@ -165,6 +183,19 @@ curl -X POST http://localhost:8000/ask \
 }
 ```
 To ask a follow-up, send the same `conversation_id` and the earlier turns in `history`.
+To ask about only some files (e.g. one folder), add their ids: `"document_ids": ["3f9a…", "b71c…"]`.
+
+**Move a file into a folder**
+```bash
+curl -X PATCH http://localhost:8000/documents/3f9a… \
+  -H "Content-Type: application/json" \
+  -d '{"folder": "Case 2024"}'
+```
+
+**Get the original file** (what the side panel shows)
+```bash
+curl -o lease_2025.pdf http://localhost:8000/documents/3f9a…/file
+```
 
 **Search only (no answer)**
 ```bash

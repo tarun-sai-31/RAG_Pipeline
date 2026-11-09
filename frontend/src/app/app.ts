@@ -7,13 +7,15 @@ import { ChatStore } from './core/chat.store';
 import { ConversationsStore } from './core/conversations.store';
 import { DocumentsStore } from './core/documents.store';
 import { SidebarChats } from './layout/sidebar-chats';
+import { DocScope } from './shared/doc-scope';
 import { PromptDialog } from './shared/prompt';
+import { SourceViewer } from './shared/source-viewer';
 import { AppConfig } from './core/models';
 
 /** App shell: sidebar (new chat, pages, recent chats) and the API key dialog. */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SidebarChats, PromptDialog],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, SidebarChats, DocScope, PromptDialog, SourceViewer],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

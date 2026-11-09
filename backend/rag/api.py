@@ -14,6 +14,8 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
+from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from . import chats, gemini, guardrails, history, ingest, search, worker
@@ -177,6 +179,36 @@ def list_documents(status: str | None = None, limit: int = Query(200, le=1000), 
 @app.get("/documents/{document_id}", dependencies=[Depends(require_key)], tags=["documents"])
 def get_one(document_id: str):
     return ingest.public(_doc_or_404(document_id))
+
+
+class DocumentPatch(BaseModel):
+    folder: str = Field(max_length=200)
+
+
+@app.patch("/documents/{document_id}", dependencies=[Depends(require_key)], tags=["documents"])
+def update_document(request: Request, document_id: str, body: DocumentPatch):
+    """Move a document into a folder (the chat can ask about one folder); an empty name takes it out of any folder."""
+    doc = _doc_or_404(document_id)
+    metadata = {k: v for k, v in (doc["metadata"] or {}).items() if k not in ("folder", "project")}
+    if body.folder.strip():
+        metadata["folder"] = body.folder.strip()
+    with connection() as conn:
+        doc = conn.execute("UPDATE documents SET metadata = %s, updated_at = now() WHERE id = %s RETURNING *",
+                           (Jsonb(metadata), document_id)).fetchone()
+    if doc["status"] == "ready":
+        vectors.set_metadata(document_id, metadata)
+    request.state.summary = f"moved {doc['filename']} to folder {body.folder.strip() or '(none)'}"
+    return ingest.public(doc)
+
+
+@app.get("/documents/{document_id}/file", dependencies=[Depends(require_key)], tags=["documents"])
+def get_file(document_id: str):
+    """The original uploaded file, for viewing in the browser (the PDF behind a source)."""
+    doc = _doc_or_404(document_id)
+    path = Path(doc["storage_path"])
+    if not path.is_file():
+        raise HTTPException(404, "File not found")
+    return FileResponse(path, filename=doc["filename"], content_disposition_type="inline")
 
 
 @app.post("/documents/{document_id}/reprocess", dependencies=[Depends(require_key)], tags=["documents"])

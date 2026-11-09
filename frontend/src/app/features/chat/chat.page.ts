@@ -1,10 +1,9 @@
-import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { errorMessage } from '../../core/auth';
 import { ChatStore } from '../../core/chat.store';
-import { DocumentsStore } from '../../core/documents.store';
 import { Answer } from '../../shared/answer';
 
 const SUGGESTIONS = [
@@ -15,13 +14,12 @@ const SUGGESTIONS = [
 
 @Component({
   selector: 'app-chat-page',
-  imports: [Answer, RouterLink],
+  imports: [Answer],
   templateUrl: './chat.page.html',
   styleUrl: './chat.page.scss',
 })
 export class ChatPage implements OnInit {
   protected readonly chat = inject(ChatStore);
-  protected readonly docs = inject(DocumentsStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -30,17 +28,9 @@ export class ChatPage implements OnInit {
   private readonly input = viewChild.required<ElementRef<HTMLTextAreaElement>>('questionBox');
 
   protected readonly suggestions = SUGGESTIONS;
-  protected readonly scopeOpen = signal(false); // the "Ask about" dropdown
-  private readonly scopeEl = viewChild.required<ElementRef<HTMLElement>>('scope');
   protected readonly question = signal('');
-  protected readonly docFilter = signal('');
   protected readonly showJump = signal(false);
   protected readonly loadError = signal<string | null>(null);
-
-  protected readonly visibleDocs = computed(() => {
-    const f = this.docFilter().trim().toLowerCase();
-    return this.docs.ready().filter((d) => !f || d.filename.toLowerCase().includes(f));
-  });
 
   constructor() {
     // Keep the newest message in view whenever the conversation grows.
@@ -49,17 +39,6 @@ export class ChatPage implements OnInit {
       this.chat.busy();
       setTimeout(() => this.scrollToBottom());
     });
-  }
-
-  /** Close the "Ask about" dropdown on a click outside it or on Escape. */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (this.scopeOpen() && !this.scopeEl().nativeElement.contains(event.target as Node)) this.scopeOpen.set(false);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape() {
-    this.scopeOpen.set(false);
   }
 
   ngOnInit() {

@@ -194,6 +194,8 @@ All endpoints are documented and can be tried at **/docs**. When `API_KEY` is se
 | POST | `/documents` | Upload files (multipart `files`, optional `metadata` JSON) |
 | GET | `/documents` | All files with status and counts |
 | GET / DELETE | `/documents/{id}` | One file / delete file, chunks and cache |
+| PATCH | `/documents/{id}` | Move to a folder: `{"folder": "Case 2024"}` (empty name = no folder) |
+| GET | `/documents/{id}/file` | The original uploaded file (shown in the chat's source panel) |
 | POST | `/documents/{id}/reprocess` | Process again (uses caches) |
 | POST | `/ask` | Answer a question; saved to history |
 | POST | `/search` | Matching chunks only, no answer |
@@ -244,7 +246,7 @@ less accurate); `DOCLING_LANG=en,hi` adds Hindi. If Docling fails on a file, pla
 ## Guardrails
 
 Plain checks in `rag/guardrails.py`, no extra models; they add milliseconds. What they find is returned with
-every answer as `guardrails: {status: passed | warning | blocked, findings: [...]}` and shown under the answer.
+every answer as `guardrails: {status: passed | warning | blocked, findings: [...]}` (the app does not display them).
 
 | Where | Check | What happens |
 |---|---|---|

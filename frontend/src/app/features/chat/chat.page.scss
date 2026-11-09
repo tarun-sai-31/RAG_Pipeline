@@ -12,111 +12,6 @@
   font-size: 12px;
 }
 
-/* ---------- "Ask about" dropdown ---------- */
-.scope {
-  position: relative;
-  min-width: 0;
-}
-
-.scope-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  border-radius: 10px;
-  padding: 7px 10px 7px 12px;
-  box-shadow: var(--shadow);
-  .muted {
-    white-space: nowrap;
-  }
-  strong {
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .caret {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    overflow: visible;
-    fill: none;
-    stroke: var(--muted);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 0.15s;
-  }
-  &:hover,
-  &.open {
-    border-color: var(--accent);
-  }
-  &.open .caret {
-    transform: rotate(180deg);
-  }
-}
-
-.scope-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  width: min(420px, calc(100vw - 32px));
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
-}
-
-.doc-list {
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.doc {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  word-break: break-word;
-  &:hover {
-    background: var(--bg);
-  }
-  &.all {
-    font-weight: 600;
-    border-bottom: 1px solid var(--line);
-    border-radius: 6px 6px 0 0;
-    padding-bottom: 8px;
-  }
-  input {
-    margin-top: 3px;
-    accent-color: var(--accent);
-  }
-}
-
-.empty-list {
-  padding: 8px 6px;
-}
-
-.menu-foot {
-  display: flex;
-  justify-content: flex-end;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-}
-
-.head-right {
-  display: none; /* "New chat" lives in the sidebar; shown here only on phones */
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
 /* ---------- chat ---------- */
 .chat {
   position: relative;
@@ -128,7 +23,7 @@
 }
 
 .chat-head {
-  display: flex;
+  display: none; /* "New chat" lives in the sidebar; shown here only on phones */
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -178,21 +73,6 @@
   .meta {
     font-size: 11px;
     margin-top: 8px;
-  }
-  .guard {
-    margin-top: 10px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: var(--warn-soft);
-    color: var(--warn);
-    font-size: 12px;
-    ul {
-      margin: 4px 0 0;
-      padding-left: 18px;
-    }
-    .values {
-      font-variant-numeric: tabular-nums;
-    }
   }
 }
 
@@ -295,8 +175,9 @@
 .hint {
   max-width: 860px;
   margin: 6px auto 0;
-  font-size: 11px;
+  font-size: 10.5px;
   text-align: center;
+  opacity: 0.8;
 }
 
 /* ---------- phone ---------- */
@@ -304,11 +185,8 @@
   .layout {
     padding: 12px 16px;
   }
-  .head-right {
+  .chat-head {
     display: flex;
-  }
-  .scope-btn .muted {
-    display: none;
   }
   .msg.user {
     max-width: 90%;

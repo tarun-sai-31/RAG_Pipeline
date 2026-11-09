@@ -7,6 +7,12 @@ import { DocStatus, DocumentItem } from './models';
 const ACTIVE_POLL_MS = 3000; // while files are queued/processing
 const IDLE_POLL_MS = 20000;
 
+/** The folder a document was uploaded from, or the folder name typed at upload; '' for loose files. */
+export function folderOf(doc: DocumentItem): string {
+  const value = doc.metadata?.['folder'] ?? doc.metadata?.['project'];
+  return typeof value === 'string' ? value : '';
+}
+
 /** The document list, kept fresh by polling, plus which documents the chat is limited to. */
 @Injectable({ providedIn: 'root' })
 export class DocumentsStore {
@@ -53,6 +59,16 @@ export class DocumentsStore {
     const next = new Set(this.selected());
     if (on) next.add(id);
     else next.delete(id);
+    this.selected.set(next);
+  }
+
+  /** Select or clear several documents at once (a whole folder). */
+  toggleMany(ids: string[], on: boolean) {
+    const next = new Set(this.selected());
+    for (const id of ids) {
+      if (on) next.add(id);
+      else next.delete(id);
+    }
     this.selected.set(next);
   }
 
