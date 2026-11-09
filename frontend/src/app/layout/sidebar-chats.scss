@@ -1,0 +1,154 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.lists {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.heading {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 12px 4px;
+}
+
+/* ---------- a chat row ---------- */
+.chat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 4px;
+  min-height: 34px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13.5px;
+  .title {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    line-height: 34px;
+    padding-left: 12px;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dots {
+    opacity: 0;
+  }
+  &:hover,
+  &:focus-within {
+    background: var(--bg);
+    .dots {
+      opacity: 1;
+    }
+  }
+  &.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    .dots {
+      opacity: 1;
+    }
+  }
+}
+
+.rename {
+  margin: 1px 0;
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13.5px;
+  background: var(--panel);
+  outline: none;
+}
+
+/* ---------- a group (folder) ---------- */
+.group {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  padding-right: 4px;
+  .dots {
+    opacity: 0;
+  }
+  &:hover {
+    background: var(--bg);
+    .dots {
+      opacity: 1;
+    }
+  }
+}
+
+.group-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 7px 6px 7px 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  .title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .caret {
+    color: var(--muted);
+    transition: transform 0.15s;
+    &.open {
+      transform: rotate(90deg);
+    }
+  }
+  .count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
+
+.group-chats {
+  margin-left: 14px;
+  padding-left: 6px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.empty {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* touch screens have no hover: always show the buttons */
+@media (hover: none) {
+  .chat .dots,
+  .group .dots {
+    opacity: 1;
+  }
+}

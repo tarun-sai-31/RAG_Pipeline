@@ -1,0 +1,5 @@
+{
+  "/api": { "target": "http://localhost:8000", "pathRewrite": { "^/api": "" }, "changeOrigin": true },
+  "/docs": { "target": "http://localhost:8000" },
+  "/openapi.json": { "target": "http://localhost:8000" }
+}

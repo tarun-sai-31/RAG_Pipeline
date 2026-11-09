@@ -1,0 +1,137 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  min-height: 130px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  padding: 18px 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: 0.15s;
+  strong {
+    color: var(--text);
+  }
+  span {
+    font-size: 12px;
+  }
+  &:hover,
+  &.over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+}
+
+.drop-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.upload-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.uploads {
+  display: grid;
+  gap: 8px;
+  max-height: 130px;
+  overflow-y: auto;
+}
+
+.up {
+  font-size: 12px;
+}
+
+.up-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  span:last-child {
+    flex-shrink: 0;
+  }
+}
+
+.bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 3px;
+  i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.2s;
+  }
+}
+
+.stat.filter {
+  text-align: left;
+  border: 1px solid var(--line);
+  &.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.file {
+  min-width: 220px;
+  .name {
+    font-weight: 500;
+    word-break: break-word;
+  }
+}
+
+.small {
+  font-size: 12px;
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .upload {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

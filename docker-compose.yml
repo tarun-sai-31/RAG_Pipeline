@@ -1,0 +1,168 @@
+# `docker compose up -d` starts the databases (all bound to this machine only):
+#   5432   PostgreSQL   documents + job queue, chats, history, groups, API log, embedding cache
+#   19530  Milvus       document chunks for search (vectors + BM25 + phrase match); web UI on 9091
+# Optional Milvus browser: docker compose --profile tools up -d attu   → http://localhost:8001
+# The backend (FastAPI on 8000) and frontend (Angular on 4200) run on this machine; see README.
+# To run everything in Docker instead: docker compose --profile app up -d --build
+
+x-backend: &backend
+  build: ./backend
+  image: document-assistant-backend
+  env_file: .env
+  environment: &backend-env
+    DATABASE_URL: postgresql://rag:${POSTGRES_PASSWORD:-rag}@postgres:5432/rag
+    MILVUS_URI: http://milvus:19530
+  volumes:
+    - files:/data
+  depends_on:
+    postgres:
+      condition: service_healthy
+    milvus:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: rag
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d rag"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # ---------- Milvus 3.0.2 standalone (from the official milvus-standalone-docker-compose.yaml) ----------
+  milvus-volume-init:
+    image: milvusdb/milvus:v3.0.2
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        uid="$$(id -u milvus)"; gid="$$(id -g milvus)"
+        marker="/var/lib/milvus/.milvus-volume-owner-$${uid}-$${gid}"
+        if [ ! -e "$${marker}" ]; then chown -R "$${uid}:$${gid}" /var/lib/milvus; touch "$${marker}"; fi
+    volumes:
+      - milvus:/var/lib/milvus
+
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.25
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    command: etcd -advertise-client-urls=http://milvus-etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    volumes:
+      - etcd:/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  milvus-minio:
+    image: milvusdb/minio:RELEASE.2024-12-18T13-15-44Z
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    command: minio server /minio_data --console-address ":9001"
+    volumes:
+      - minio:/minio_data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  milvus:
+    image: milvusdb/milvus:v3.0.2
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+      MINIO_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_REGION: us-east-1
+    volumes:
+      - milvus:/var/lib/milvus
+    ports:
+      - "127.0.0.1:${MILVUS_PORT:-19530}:19530"
+      - "127.0.0.1:9091:9091"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    depends_on:
+      milvus-volume-init:
+        condition: service_completed_successfully
+      milvus-etcd:
+        condition: service_started
+      milvus-minio:
+        condition: service_started
+    restart: unless-stopped
+
+  # Optional web UI to browse the Milvus collection (profile "tools").
+  attu:
+    profiles: ["tools"]
+    image: zilliz/attu:v2.6
+    environment:
+      MILVUS_URL: milvus:19530
+    ports:
+      - "127.0.0.1:${ATTU_PORT:-8001}:3000"
+    depends_on:
+      - milvus
+
+  # ---------- optional: the app inside Docker (profile "app") ----------
+  api:
+    <<: *backend
+    profiles: ["app"]
+    # No host port: in Docker the API is reached through the frontend at /api.
+    environment:
+      <<: *backend-env
+      EMBEDDED_WORKERS: "0"  # the separate `worker` containers process uploads
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      retries: 30
+
+  worker:
+    <<: *backend
+    profiles: ["app"]
+    command: ["python", "-m", "rag.worker"]
+    deploy:
+      replicas: ${WORKERS:-2}
+    stop_grace_period: 5m
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    image: document-assistant-frontend
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  milvus:
+  etcd:
+  minio:
+  files:

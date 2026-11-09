@@ -1,0 +1,50 @@
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/chat" [queryParams]="chat.conversationId() ? { conversation: chat.conversationId() } : {}">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></svg>
+      </span>
+      <span class="brand-text">Document Assistant</span>
+    </a>
+
+    <a class="new-chat" routerLink="/chat" (click)="newChat()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      <span>New chat</span>
+    </a>
+
+    <nav>
+      <a routerLink="/chat" [queryParams]="chat.conversationId() ? { conversation: chat.conversationId() } : {}" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" /></svg>
+        <span>Chat</span>
+      </a>
+      <a routerLink="/documents" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></svg>
+        <span>Documents</span>
+        @if (working()) {
+          <span class="pill" title="Files being processed">{{ working() }}</span>
+        }
+      </a>
+      <a routerLink="/history" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
+        <span>History</span>
+      </a>
+    </nav>
+
+    <app-sidebar-chats class="chats" />
+  </aside>
+
+  <main>
+    <router-outlet />
+  </main>
+</div>
+
+<dialog #keyDialog>
+  <form method="dialog" (submit)="$event.preventDefault(); saveKey(keyInput.value)">
+    <h3>API key</h3>
+    <p class="muted">This server needs an access key. Ask your administrator for it.</p>
+    <input #keyInput class="input" type="password" autocomplete="off" placeholder="X-API-Key" required />
+    <div class="actions"><button class="btn">Save</button></div>
+  </form>
+</dialog>
+
+<app-prompt-dialog />

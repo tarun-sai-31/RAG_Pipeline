@@ -1,0 +1,24 @@
+# PyTorch CPU-only build (much smaller than the CUDA one); used by Docling's layout and table models.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+
+fastapi[standard]==0.115.12
+pydantic-settings==2.16.0
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3
+pymilvus==3.0.2
+numpy==2.2.6
+google-genai==1.68.0
+docling==2.139.0
+easyocr==1.7.2
+pymupdf==1.26.7
+python-docx==1.1.2
+openpyxl==3.1.5
+pytesseract==0.3.13
+pillow==11.2.1
+beautifulsoup4==4.13.4
+lxml==5.4.0
+pytest==8.3.5
+httpx==0.28.1
+sentence-transformers==6.1.0

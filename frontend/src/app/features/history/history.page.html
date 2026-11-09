@@ -1,0 +1,76 @@
+<div class="page narrow">
+  <div class="head">
+    <h1 class="page-title">History</h1>
+    <a class="btn" routerLink="/chat">New chat</a>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+    <input
+      class="input"
+      placeholder="Search your chats…"
+      aria-label="Search your chats"
+      [value]="q()"
+      (input)="onSearch($any($event.target).value)"
+    />
+  </div>
+
+  <p class="count muted">
+    @if (q().trim()) {
+      @if (!searching()) {
+        {{ items().length }} chat{{ items().length === 1 ? '' : 's' }} found
+      }
+    } @else {
+      {{ items().length }} chat{{ items().length === 1 ? '' : 's' }}
+    }
+  </p>
+
+  @if (error() || store.error()) {
+    <p class="error-text">{{ error() || store.error() }}</p>
+  }
+
+  <div class="list">
+    @for (c of items(); track c.id) {
+      <div class="row" role="link" tabindex="0" (click)="open(c)" (keydown.enter)="open(c)">
+        <div class="text">
+          @if (editing() === c.id) {
+            <input
+              class="input rename"
+              [value]="c.title"
+              maxlength="200"
+              aria-label="Chat name"
+              (click)="$event.stopPropagation()"
+              (keydown.enter)="$event.stopPropagation(); saveRename(c, $any($event.target).value)"
+              (keydown.escape)="editing.set(null)"
+              (blur)="saveRename(c, $any($event.target).value)"
+            />
+          } @else {
+            <div class="title">
+              @if (c.pinned) {
+                <app-icon name="pin" [size]="15" class="pin" />
+              }
+              <span>{{ c.title }}</span>
+            </div>
+          }
+          <div class="meta muted">
+            @if (c.group_id && groupName().get(c.group_id); as g) {
+              <span class="group"><app-icon name="folder" [size]="13" /> {{ g }}</span> ·
+            }
+            Last message {{ c.updated_at | timeAgo }} · {{ c.questions }} question{{ c.questions === 1 ? '' : 's' }}
+          </div>
+        </div>
+        <app-menu class="dots" [items]="actions.chatMenu(c, startRename(c))" label="Chat options" (click)="$event.stopPropagation()" />
+      </div>
+    } @empty {
+      @if (!searching()) {
+        <div class="empty">
+          @if (q().trim()) {
+            No chats match “{{ q() }}”.
+          } @else {
+            No chats yet. <a routerLink="/chat">Ask your first question</a>.
+          }
+        </div>
+      }
+    }
+  </div>
+</div>

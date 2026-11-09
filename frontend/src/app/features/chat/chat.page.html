@@ -1,0 +1,145 @@
+<div class="layout">
+  <section class="chat" (wheel)="onWheel($event)">
+    <div class="chat-head">
+      <div class="scope" #scope>
+        <button
+          type="button"
+          class="scope-btn"
+          [class.open]="scopeOpen()"
+          [attr.aria-expanded]="scopeOpen()"
+          aria-haspopup="listbox"
+          (click)="scopeOpen.set(!scopeOpen())"
+        >
+          <span class="muted">Ask about:</span>
+          <strong>
+            @if (docs.selected().size) {
+              {{ docs.selected().size }} selected document{{ docs.selected().size === 1 ? '' : 's' }}
+            } @else {
+              All documents ({{ docs.ready().length }})
+            }
+          </strong>
+          <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+
+        @if (scopeOpen()) {
+          <div class="scope-menu card" role="listbox" aria-multiselectable="true">
+            <input
+              class="input"
+              placeholder="Filter documents"
+              [value]="docFilter()"
+              (input)="docFilter.set($any($event.target).value)"
+            />
+            <label class="doc all">
+              <input type="checkbox" [checked]="!docs.selected().size" (change)="docs.clearSelection()" />
+              <span>All documents</span>
+            </label>
+            <div class="doc-list">
+              @for (d of visibleDocs(); track d.id) {
+                <label class="doc">
+                  <input
+                    type="checkbox"
+                    [checked]="docs.selected().has(d.id)"
+                    (change)="docs.toggle(d.id, $any($event.target).checked)"
+                  />
+                  <span>{{ d.filename }}</span>
+                </label>
+              } @empty {
+                <div class="muted small empty-list">
+                  @if (docs.ready().length) {
+                    No documents match.
+                  } @else {
+                    No ready documents yet. <a routerLink="/documents">Upload some</a>.
+                  }
+                </div>
+              }
+            </div>
+            <div class="menu-foot">
+              <button type="button" class="btn small" (click)="scopeOpen.set(false)">Done</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="head-right">
+        <button type="button" class="btn ghost small" (click)="newChat()">New chat</button>
+      </div>
+    </div>
+
+    <div class="messages" #scroller (scroll)="onScroll()">
+      <div class="thread">
+        @if (loadError()) {
+          <div class="msg bot error">{{ loadError() }}</div>
+        }
+        @for (m of chat.messages(); track $index) {
+          @if (m.role === 'user') {
+            <div class="msg user">{{ m.content }}</div>
+          } @else if (m.error) {
+            <div class="msg bot error">{{ m.content }}</div>
+          } @else {
+            <div class="msg bot">
+              <app-answer [text]="m.content" [sources]="m.sources ?? []" />
+              @if (m.guardrails?.status === 'warning') {
+                <div class="guard" role="note">
+                  <strong>Check this answer</strong>
+                  <ul>
+                    @for (f of m.guardrails!.findings; track f.check) {
+                      <li>
+                        {{ f.message }}
+                        @if (f.values?.length) {
+                          <span class="values">({{ f.values!.join(', ') }})</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+              @if (m.latencyMs !== undefined) {
+                <div class="meta muted">
+                  {{ (m.latencyMs / 1000).toFixed(1) }} s
+                  @if (m.query && m.query !== chat.messages()[$index - 1]?.content) {
+                    · searched for “{{ m.query }}”
+                  }
+                </div>
+              }
+            </div>
+          }
+        } @empty {
+          @if (!loadError()) {
+            <div class="welcome">
+              <h2>Ask about your documents</h2>
+              <p class="muted">Ask in plain language. Every answer cites its sources, and every question is saved to History.</p>
+              <div class="chips">
+                @for (s of suggestions; track s) {
+                  <button type="button" (click)="send(s)">{{ s }}</button>
+                }
+              </div>
+            </div>
+          }
+        }
+        @if (chat.busy()) {
+          <div class="msg bot typing" aria-label="Answering"><span></span><span></span><span></span></div>
+        }
+      </div>
+    </div>
+
+    @if (showJump()) {
+      <button type="button" class="jump" title="Jump to the newest message" (click)="scrollToBottom(true)">↓</button>
+    }
+
+    <form class="composer" (submit)="$event.preventDefault(); send()">
+      <div class="box">
+        <textarea
+          #questionBox
+          rows="1"
+          placeholder="Ask a question about your documents…"
+          aria-label="Question"
+          [value]="question()"
+          (input)="onInput($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+        ></textarea>
+        <button class="btn" type="submit" [disabled]="chat.busy() || !question().trim()">Send</button>
+      </div>
+      <div class="hint muted">Enter to send · Shift+Enter for a new line · click a number to see its source</div>
+    </form>
+  </section>
+</div>

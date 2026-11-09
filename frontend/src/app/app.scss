@@ -1,0 +1,183 @@
+.shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ---------- left sidebar ---------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 14px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  min-height: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.logo {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+}
+
+.brand-text {
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+    &:hover {
+      color: var(--text);
+      background: var(--bg);
+    }
+    &.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-weight: 600;
+    }
+  }
+}
+
+.new-chat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: -8px;
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.chats {
+  margin-top: -8px;
+}
+
+.pill {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+
+main {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+dialog {
+  h3 {
+    margin-top: 0;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+}
+
+/* ---------- phone: the sidebar becomes a bar across the top ---------- */
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .sidebar {
+    gap: 10px;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    padding: 0;
+  }
+  .new-chat,
+  .chats {
+    display: none; /* on phones: History page lists the chats, Chat has its own "New chat" */
+  }
+  .logo {
+    width: 34px;
+    height: 34px;
+  }
+  .brand-text {
+    font-size: 19px;
+  }
+  nav {
+    flex-direction: row;
+    a {
+      flex: 1;
+      justify-content: center;
+      padding: 7px 8px;
+      font-size: 14px;
+    }
+  }
+}

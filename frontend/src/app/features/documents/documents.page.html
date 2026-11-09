@@ -1,0 +1,119 @@
+<div class="page">
+  <h1 class="page-title">Documents</h1>
+  <p class="page-sub">Upload files once. They are processed in the background and stay searchable.</p>
+
+  <div class="upload card">
+    <div
+      class="drop"
+      [class.over]="dragging()"
+      (dragover)="$event.preventDefault(); dragging.set(true)"
+      (dragleave)="dragging.set(false)"
+      (drop)="onDrop($event)"
+      (click)="fileInput.click()"
+    >
+      <input #fileInput type="file" multiple hidden (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
+      <input #folderInput type="file" webkitdirectory directory multiple hidden (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
+      <strong>Drop files or an entire folder here</strong>
+      <span class="muted">PDF, Word, Excel, PowerPoint, Images, Text, or .ZIP archive</span>
+      <div class="drop-actions">
+        <button type="button" class="btn small" (click)="$event.stopPropagation(); folderInput.click()">📁 Upload Folder</button>
+        <button type="button" class="btn small ghost" (click)="$event.stopPropagation(); fileInput.click()">📄 Choose Files</button>
+      </div>
+    </div>
+    <div class="upload-side">
+      <label class="field">
+        <span class="muted">Project tag (optional)</span>
+        <input class="input" placeholder="e.g. Habitat" [value]="project()" (input)="project.set($any($event.target).value)" />
+      </label>
+      <div class="uploads">
+        @for (u of uploads(); track u.id) {
+          <div class="up">
+            <div class="up-line">
+              <span class="name">{{ u.name }}</span>
+              <span [class.error-text]="u.failed" class="muted">{{ u.message }}</span>
+            </div>
+            <div class="bar"><i [style.width.%]="u.progress"></i></div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat card">
+      <div class="label">Files</div>
+      <div class="value">{{ store.total() }}</div>
+    </div>
+    @for (s of statuses; track s) {
+      <button type="button" class="stat card filter" [class.active]="statusFilter() === s" (click)="statusFilter.set(statusFilter() === s ? '' : s)">
+        <div class="label"><span class="badge" [class]="s">{{ s }}</span></div>
+        <div class="value">{{ store.counts()[s] ?? 0 }}</div>
+      </button>
+    }
+  </div>
+
+  <div class="toolbar">
+    <input class="input" placeholder="Filter by file name" [value]="filter()" (input)="filter.set($any($event.target).value)" />
+    @if (statusFilter()) {
+      <button type="button" class="btn ghost small" (click)="statusFilter.set('')">Show all statuses</button>
+    }
+    <button type="button" class="btn ghost small" (click)="store.refresh()">Refresh</button>
+  </div>
+
+  @if (actionError()) {
+    <p class="error-text">{{ actionError() }}</p>
+  }
+  @if (store.error()) {
+    <p class="error-text">{{ store.error() }}</p>
+  }
+
+  <div class="card table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Status</th>
+          <th>Details</th>
+          <th>Size</th>
+          <th>Uploaded</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of visible(); track d.id) {
+          <tr>
+            <td class="file">
+              <div class="name">{{ d.filename }}</div>
+              @if (projectTag(d); as p) {
+                <span class="badge neutral">#{{ p }}</span>
+              }
+              @if (d.error) {
+                <div class="error-text small">{{ d.error }}</div>
+              }
+            </td>
+            <td><span class="badge" [class]="d.status">{{ statusLabel(d) }}</span></td>
+            <td class="muted">{{ details(d) }}</td>
+            <td class="muted nowrap">{{ d.size_bytes | fileSize }}</td>
+            <td class="muted nowrap">{{ d.created_at | timeAgo }}</td>
+            <td class="actions">
+              <button type="button" class="icon-btn" title="Process again" (click)="reprocess(d)">↻</button>
+              <button type="button" class="icon-btn" title="Delete" (click)="remove(d)">✕</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="empty">
+              @if (!store.loaded()) {
+                Loading…
+              } @else if (store.documents().length) {
+                No files match.
+              } @else {
+                No documents yet. Upload some above.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
